@@ -1,14 +1,8 @@
 /* [SINGH]  Characterizing how Racial and Social Factors Impact use of anti-VEGF Treatment of Diabetic Macular Edema 
 	Author: Kat Parisis 
 	Start Date: 28-Oct-2020
-	End Date: TBD 
-	Madrid 2.0 Version: 09-Oct-2020 */
-
-
---Madrid 1.0 initial cohort count: 203,673
-
---There are three SAPS in Notion related to this study (two of them were updated) the one corresponding with the code is called "IRISTemplateUpdated."
---I chose this one because the inclusion/exclusion criteria aligned with the previous analyst's code and had Dr. Singh’s notes.
+	End Date: 29-Oct-2020
+	Database Version: 09-Oct-2020 */
 
 --STEP 1: Create patient universe 
 		
@@ -30,9 +24,7 @@
 		--eyes that we want to account for.
 		
 		--1d. We UNION these three datasets to stack their results into one cohesive dataset. 
-		
---UPDATE: Removed ICD codes related to unspecified eyes (in spreadsheet) because we are not including unspecified eyes in this study.
---NOTE: Look into extending the period to 2012?	No.	 
+			 
 DROP TABLE IF EXISTS aao_grants.singh_universe_new;
 CREATE TABLE aao_grants.singh_universe_new AS 
 (SELECT DISTINCT
@@ -362,20 +354,8 @@ WHERE EXTRACT (year from diagnosis_date) BETWEEN '2013' AND '2018'
 
 SELECT * from aao_grants.singh_universe_new;
 
---a. Prior to adding corrected ICD codes listed in the spreadsheet
-SELECT count(DISTINCT patient_guid) from aao_grants.singh_universe_new; --813,706
-SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.singh_universe_new); --1,393,097
-
---b. After to adding corrected ICD codes listed in the spreadsheet
-SELECT count(DISTINCT patient_guid) from aao_grants.singh_universe_new; --815,300
-SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.singh_universe_new); --1,396,257
---This resulted in 1,594 more patients (compared to a).
-
-
---c. After to removing ICD codes related to unspecified eyes listed in the spreadsheet
 SELECT count(DISTINCT patient_guid) from aao_grants.singh_universe_new; --720,671 <-- This is the patient count of everyone who has had a diagnosis correlated to the ICD codes between 2013 and 2018.
 SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.singh_universe_new); --1,237,031
---This resulted in 94,629 less patients (compared to b).
 
 
 
@@ -409,11 +389,6 @@ WHERE
 
 SELECT * from aao_grants.singh_universe_index;
 
---Before update
-SELECT count(DISTINCT patient_guid) from aao_grants.singh_universe_index; --815,300
-SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.singh_universe_index); --1,396,257
-
---After update
 SELECT count(DISTINCT patient_guid) from aao_grants.singh_universe_index; --720,671
 SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.singh_universe_index); --1,237,031
 
@@ -438,7 +413,6 @@ SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.singh_un
 	--3d. This is where we get a significantly large loss in patients because most patients in aao_grants.singh_universe_index 
 	--do not have a history anti-vegf treatments. 
 
---UPDATE: Extended procedure year to 2019 to account for patients that have gotten vegf treatment in 2019.
 --GENERAL NOTE TO SELF: "Study date range" refers to index date. Need to take into account any follow up and lookback period that study specifies to adjust for other dates.
 DROP TABLE IF EXISTS aao_grants.singh_universe_join_vegf;
 
@@ -460,11 +434,6 @@ WHERE
 
 SELECT * from aao_grants.singh_universe_join_vegf;
 
---Before update
-SELECT count(DISTINCT patient_guid) from aao_grants.singh_universe_join_vegf; --215,478  
-SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.singh_universe_join_vegf); --320,394
-
---After update 
 SELECT count(DISTINCT patient_guid) from aao_grants.singh_universe_join_vegf; --223,829 <-- This is the patient count of everyone who has had an anti-vegf treatment in the cohort. 
 SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.singh_universe_join_vegf); --338,141
 
@@ -491,11 +460,6 @@ WHERE
 
 SELECT * from aao_grants.rpb_singh_universe_remove;
 
---Before update
-SELECT count(DISTINCT patient_guid) from aao_grants.rpb_singh_universe_remove; --129,473
-SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.rpb_singh_universe_remove); --188,472
-
---After update
 SELECT count(DISTINCT patient_guid) from aao_grants.rpb_singh_universe_remove; --142,902 <-- This is the patient count of everyone who has had an anti-vegf treatment in the cohort after their index date 
 --and have removed patients who have had anti-vegf treatment during a one year window prior to their index date.
 SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.rpb_singh_universe_remove);	--209,895	
@@ -511,7 +475,6 @@ SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.rpb_sing
 		--4c. We are joining aao_grants.rpb_singh_universe_remove to madrid2.patient to get the cohort's 
 		--patients' age and yob data. 
 		
---UPDATE: Changed to patients being 18 years old or older 
 DROP TABLE IF EXISTS aao_grants.singh_universe_dob;
 CREATE TABLE aao_grants.singh_universe_dob AS SELECT DISTINCT
 	t.patient_guid,
@@ -528,11 +491,6 @@ FROM
  
 SELECT * from aao_grants.singh_universe_dob;
 
---Before update
-SELECT count(DISTINCT patient_guid) from aao_grants.singh_universe_dob; --129,383
-SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.singh_universe_dob); --188,315
-
---After update
 SELECT count(DISTINCT patient_guid) from aao_grants.singh_universe_dob; --142,835 <-- This is the patient count of everyone who is 18 years old or older from the anti-vegf table (above).
 SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.singh_universe_dob); --209,793
 
@@ -546,9 +504,6 @@ SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.singh_un
 		--are not in already included in our cohort, and we have to get them from madrid2.patient_problem_laterality.
 
 --Since this is a patient level analysis, we only need patient data and wouldnt make sense to join tables on eye column due to it not being needed.
-
---UPDATE: Since we need a HISTORY of the diagnostic exclusion criteria, we are making sure the diagnosis_date of the excluded diagnosis 
---comes BEFORE the index_date and we can get history from 2000.
 
 DROP TABLE IF EXISTS aao_grants.singh_universe_dx_excl;
 CREATE TABLE aao_grants.singh_universe_dx_excl AS
@@ -838,10 +793,6 @@ WHERE
 
 SELECT * from aao_grants.singh_universe_dx_excl;
 
---Before update
-SELECT COUNT(DISTINCT patient_guid) from aao_grants.singh_universe_dx_excl; --29,533
-
---After update
 SELECT COUNT(DISTINCT patient_guid) from aao_grants.singh_universe_dx_excl; --16,509 <-- This is the number of patients that qualify for the diagnostic exclusion criteria.
 
 
@@ -904,10 +855,6 @@ WHERE abs(
 
 SELECT * from aao_grants.singh_universe_excl_proc;
 
---Before update
-SELECT COUNT(DISTINCT patient_guid) from aao_grants.singh_universe_excl_proc; --949
-
---After update
 SELECT COUNT(DISTINCT patient_guid) from aao_grants.singh_universe_excl_proc; --1,068 <-- This is the number of patients that qualify for the procedure exclusion criteria.
 
 
@@ -944,10 +891,6 @@ WHERE
 
 SELECT * FROM aao_grants.singh_universe_excl_died_new;
 
---Before update
-SELECT count(distinct patient_guid) FROM aao_grants.singh_universe_excl_died_new; --776  
-
---After update
 SELECT count(distinct patient_guid) FROM aao_grants.singh_universe_excl_died_new; --706 <-- This is the number of patients that have died 1 year after receiving an anti-vegf treatment.
 
 
@@ -955,6 +898,7 @@ SELECT count(distinct patient_guid) FROM aao_grants.singh_universe_excl_died_new
 --that we have created. We do this by querying our final inclusion cohort (aao_grants.singh_universe_dob) and exclude 
 --the union exclusion dataset with the NOT IN function under the WHERE clause. 
 --We want to do this step to make sure that the patients that qualify for the exclusion criteria are not included in our complete initial cohort.
+			
 --Final universe
 
 DROP TABLE IF EXISTS aao_grants.rpb_singh_universe_new;
@@ -981,28 +925,9 @@ WHERE
 
 SELECT * from aao_grants.rpb_singh_universe_new;
 
---Before update
-SELECT count(distinct patient_guid) FROM aao_grants.rpb_singh_universe_new; --98,671
-SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.rpb_singh_universe_new); --145,877 
-
---After update
 SELECT count(distinct patient_guid) FROM aao_grants.rpb_singh_universe_new; --124,826
 SELECT count(*) from (SELECT DISTINCT patient_guid, eye from aao_grants.rpb_singh_universe_new); --185,145 
 
 
 --Complete intial unique patient count: 124,826
-
---REASONS FOR THE INITAL PATIENT COHORT COUNT DROP IN MADRID 2.0:
-
-	--1. New Verana patient_guid algorimth
-	--2. A very large number of patients have never received anti-vegf treatments. The previous analyst only joined our cohort 
-	--to the anti-vegf table on patient_guid, instead of joining them both on patient_guid and eye, which results a more decreased 
-	--size of our patient cohort than in Madrid 1.0.
-	--3. The previous analyst did not account for excluding patients that died within 365 days of receiving first anti-VEGF treatment.
-	--4. The previous analyst did not filter for patients that had their anti-vegf treatments AFTER index date.
-	--5. The previous analyst incorrectly coded for index date. Since one patient eye can have multiple diagnoses, he 
-	--took the earliest date for each diagnosis instead of the earliest date out of ALL diagnoses (i.e. which diagnosis 
-	--came first?), which is the qualifying event for entering the cohort, and we only need ONE qualifying event. 
-	--Now, there is a one to one correspondence to patient eye and diagnosis. Before, there was a one (patient eye) to many correspondence (diagnoses).
-	
 
